@@ -1,0 +1,106 @@
+<div
+  id="nouvelleDiscussion"
+  class="bg-gray-900 text-white w-auto h-full overflow-hidden"
+>
+    <!-- Header -->
+  <div class="bg-gray-800 px-4 py-3 flex items-center space-x-4">
+    <button id="backnewgroupe" class="text-white">
+      <svg
+        class="w-6 h-6"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M15 19l-7-7 7-7"
+        ></path>
+      </svg>
+    </button>
+   
+  </div>
+
+
+ <div class="px-4 py-3 bg-gray-800 border-b border-gray-700">
+  <div class="relative">
+    <input
+      type="text"
+      id="search-contacts"
+      placeholder="Rechercher un nom ou un numéro (* pour trier)"
+      class="w-full bg-gray-700 text-white px-4 py-2 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+    />
+  </div>
+</div>
+
+    <!-- Main Content -->
+    <div class="flex-1 overflow-y-auto">
+      <div class="px-4 py-2">
+        <!-- Nouveau groupe -->
+        <div id="newgroup" class="flex items-center py-3 cursor-pointer">
+          <div
+            class="w-12 h-12 rounded-full gradient-bg flex items-center justify-center mr-3"
+          >
+            <svg
+              class="w-6 h-6 text-white"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zm4 18v-6h2.5l-2.5-8h-2c0 0-1.5 0-2 0l-2.5 8H16v6h4zM12.5 11.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5S11 9.17 11 10s.67 1.5 1.5 1.5zM8 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zm4 18v-6h2.5L12 8h-2c0 0-1.5 0-2 0L5.5 16H8v6h4z"
+              />
+            </svg>
+          </div>
+          <span class="text-white text-base">Nouveau groupe</span>
+        </div>
+
+        <!-- Nouveau contact -->
+        <div id="newContact" class="flex items-center py-3 cursor-pointer">
+          <div
+            class="w-12 h-12 rounded-full gradient-bg flex items-center justify-center mr-3"
+          >
+            <svg
+              class="w-6 h-6 text-white"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+            </svg>
+          </div>
+          <span class="text-white text-base">Nouveau contact</span>
+        </div>
+
+        <!-- Nouvelle communauté -->
+        <div class="flex items-center py-3">
+          <div
+            class="w-12 h-12 rounded-full gradient-bg flex items-center justify-center mr-3"
+          >
+            <svg
+              class="w-6 h-6 text-white"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zm4 18v-6h2.5l-2.5-8h-2c0 0-1.5 0-2 0l-2.5 8H16v6h4zM12.5 11.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5S11 9.17 11 10s.67 1.5 1.5 1.5zM8 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zm4 18v-6h2.5L12 8h-2c0 0-1.5 0-2 0L5.5 16H8v6h4z"
+              />
+            </svg>
+          </div>
+          <span class="text-white text-base">Nouvelle communauté</span>
+        </div>
+      </div>
+
+      <div class="px-4 py-2 mt-4">
+        <h2 class="text-gray-400 text-sm font-medium mb-4">
+          Contacts sur WhatsApp
+        </h2>
+
+        <!-- Contact actuel (vous) -->
+        <div id="contactsContainer"></div>
+
+        <!-- Liste des contacts -->
+        <div id="contacts-list" class="mt-4"></div>
+      </div>
+    </div>
+  </div>
+</div>

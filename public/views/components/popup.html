@@ -1,0 +1,87 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display: none;" id="popup-overlay">
+  <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+  
+  <div class="relative bg-gray-800 rounded-xl shadow-2xl border border-gray-700 w-full max-w-xs mx-auto transform transition-all">
+    <div class="py-2">
+      <div class="flex items-center px-4 py-3 hover:bg-gray-700 cursor-pointer transition-colors info-btn">
+        <div class="w-8 h-8 flex items-center justify-center mr-3">
+          <i class="bx bx-info-circle text-gray-300 text-xl"></i>
+        </div>
+        <span class="text-gray-200 text-sm font-medium">Infos du contact</span>
+      </div>
+
+      <div class="flex items-center px-4 py-3 hover:bg-gray-700 cursor-pointer transition-colors">
+        <div class="w-8 h-8 flex items-center justify-center mr-3">
+          <i class="bx bx-check-square text-gray-300 text-xl"></i>
+        </div>
+        <span class="text-gray-200 text-sm font-medium">Sélectionner des messages</span>
+      </div>
+
+      <div class="flex items-center px-4 py-3 hover:bg-gray-700 cursor-pointer transition-colors">
+        <div class="w-8 h-8 flex items-center justify-center mr-3">
+          <i class="bx bx-bell-off text-gray-300 text-xl"></i>
+        </div>
+        <span class="text-gray-200 text-sm font-medium">Mode silencieux</span>
+      </div>
+
+      <div class="flex items-center px-4 py-3 hover:bg-gray-700 cursor-pointer transition-colors">
+        <div class="w-8 h-8 flex items-center justify-center mr-3">
+          <i class="bx bx-timer text-gray-300 text-xl"></i>
+        </div>
+        <span class="text-gray-200 text-sm font-medium">Messages éphémères</span>
+      </div>
+
+      <div class="flex items-center px-4 py-3 hover:bg-gray-700 cursor-pointer transition-colors">
+        <div class="w-8 h-8 flex items-center justify-center mr-3">
+          <i class="bx bx-heart text-gray-300 text-xl"></i>
+        </div>
+        <span class="text-gray-200 text-sm font-medium">Ajouter aux Favoris</span>
+      </div>
+
+      <div class="flex items-center px-4 py-3 hover:bg-gray-700 cursor-pointer transition-colors">
+        <div class="w-8 h-8 flex items-center justify-center mr-3">
+          <i class="bx bx-x text-gray-300 text-xl"></i>
+        </div>
+        <span class="text-gray-200 text-sm font-medium">Fermer la discussion</span>
+      </div>
+
+      <div class="border-t border-gray-600 my-1"></div>
+
+      <div class="flex items-center px-4 py-3 hover:bg-gray-700 cursor-pointer transition-colors">
+        <div class="w-8 h-8 flex items-center justify-center mr-3">
+          <i class="bx bx-flag text-gray-300 text-xl"></i>
+        </div>
+        <span class="text-gray-200 text-sm font-medium">Signaler</span>
+      </div>
+
+      <div class="flex items-center px-4 py-3 hover:bg-red-600 cursor-pointer transition-colors block-btn">
+        <div class="w-8 h-8 flex items-center justify-center mr-3">
+          <i class="bx bx-block text-gray-300 text-xl"></i>
+        </div>
+        <span class="text-gray-200 text-sm font-medium">Bloquer</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Fermer le popup en cliquant à l'extérieur
+  document.getElementById('popup-overlay').addEventListener('click', function(e) {
+    if (e.target === this) {
+      this.style.display = 'none';
+    }
+  });
+
+  // Animation des éléments du menu
+  document.querySelectorAll('[class*="hover:bg-"]').forEach((item) => {
+    item.addEventListener("click", function () {
+      const text = this.querySelector("span").textContent;
+      console.log(`Option sélectionnée: ${text}`);
+
+      this.style.transform = "scale(0.98)";
+      setTimeout(() => {
+        this.style.transform = "scale(1)";
+      }, 100);
+    });
+  });
+</script>

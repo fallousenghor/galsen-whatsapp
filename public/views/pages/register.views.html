@@ -1,0 +1,104 @@
+<div
+  class="min-h-screen flex items-center justify-center bg-gradient-to-tr from-green-100 via-white to-green-50 px-4 py-10"
+>
+  <div
+    class="bg-white shadow-2xl rounded-3xl w-full max-w-2xl p-10 border border-green-100"
+  >
+    <div class="flex flex-col items-center mb-8">
+      <img
+        src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"
+        alt="Logo WhatsApp"
+        class="w-20 h-20 mb-4"
+      />
+      <h2 class="text-3xl font-bold text-gray-800">Créer un compte WhatsApp</h2>
+      <p class="text-gray-500 mt-1 text-center">
+        Rejoignez-nous pour rester connecté(e) avec vos proches.
+      </p>
+    </div>
+
+    <form id="registerForm" class="space-y-6">
+      <!-- Prénom -->
+      <div>
+        <label
+          for="prenom"
+          class="block text-base font-medium text-gray-700 mb-1"
+          >Prénom</label
+        >
+        <input
+          type="text"
+          id="prenom"
+          placeholder="Entrez votre prénom"
+          class="w-full px-5 py-3 border border-gray-300 rounded-xl"
+        />
+        <small id="prenomError" class="text-red-500 text-sm mt-1 block"></small>
+      </div>
+
+      <!-- Nom -->
+      <div>
+        <label for="nom" class="block text-base font-medium text-gray-700 mb-1"
+          >Nom</label
+        >
+        <input
+          type="text"
+          id="nom"
+          placeholder="Entrez votre nom"
+          class="w-full px-5 py-3 border border-gray-300 rounded-xl"
+        />
+        <small id="nomError" class="text-red-500 text-sm mt-1 block"></small>
+      </div>
+
+      <!-- Numéro de téléphone -->
+      <div>
+        <label class="block text-base font-medium text-gray-700 mb-1"
+          >Numéro de téléphone</label
+        >
+        <div class="flex gap-3">
+          <select
+            id="indicatif"
+            class="w-1/3 px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-700"
+          >
+            <option value="+221">🇸🇳 +221</option>
+            <option value="+33">🇫🇷 +33</option>
+
+            <option value="+225">🇨🇮 +225</option>
+            <option value="+216">🇹🇳 +216</option>
+            <option value="+212">🇲🇦 +212</option>
+            <option value="+1">🇺🇸 +1</option>
+            <option value="+44">🇬🇧 +44</option>
+            <option value="+91">🇮🇳 +91</option>
+          </select>
+          <input
+            type="tel"
+            id="telephone"
+            placeholder="78 XXX XX XX"
+            class="w-2/3 px-5 py-3 border border-gray-300 rounded-xl"
+          />
+        </div>
+        <small
+          id="telephoneError"
+          class="text-red-500 text-sm mt-1 block"
+        ></small>
+      </div>
+
+      <!-- Bouton -->
+      <button
+        type="submit"
+        class="w-full bg-green-500 text-white py-3 rounded-xl text-lg font-medium hover:bg-green-600 transition duration-200"
+      >
+        S'inscrire
+      </button>
+
+      <!-- Lien vers la page de connexion -->
+      <p class="text-center text-gray-600 mt-4">
+        Vous avez déjà un compte ?
+        <a
+          href="#"
+          id="redirectToLogin"
+          class="text-green-600 hover:underline font-semibold"
+        >
+          Se connecter
+        </a>
+      </p>
+    </form>
+  </div>
+</div>

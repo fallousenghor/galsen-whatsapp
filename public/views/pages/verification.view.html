@@ -1,0 +1,139 @@
+<div
+  class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100"
+>
+  <div
+    class="bg-white shadow-2xl rounded-3xl p-8 w-full max-w-md text-center animate-fade-in-up"
+  >
+    <!-- Logo WhatsApp -->
+    <div class="flex justify-center mb-6">
+      <img
+        src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"
+        alt="Logo WhatsApp"
+        class="w-16 h-16 animate-bounce-slow"
+      />
+    </div>
+
+    <h2 class="text-2xl font-bold text-emerald-700 mb-3">Vérification</h2>
+    <p class="text-gray-600 mb-6">
+      Veuillez entrer le code à 4 chiffres envoyé sur votre numéro.
+    </p>
+
+    <form id="verificationForm" class="space-y-6">
+      <div class="flex justify-center space-x-4">
+        <input
+          type="text"
+          maxlength="1"
+          class="code-input"
+          id="code1"
+          required
+        />
+        <input
+          type="text"
+          maxlength="1"
+          class="code-input"
+          id="code2"
+          required
+        />
+        <input
+          type="text"
+          maxlength="1"
+          class="code-input"
+          id="code3"
+          required
+        />
+        <input
+          type="text"
+          maxlength="1"
+          class="code-input"
+          id="code4"
+          required
+        />
+      </div>
+
+      <button
+        type="submit"
+        class="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-all duration-300 shadow-md hover:shadow-lg"
+      >
+        Valider le code
+      </button>
+    </form>
+
+    <p class="text-sm text-gray-500 mt-6">
+      Vous n’avez pas reçu le code ?
+      <a href="#" class="text-emerald-600 hover:underline font-medium"
+        >Renvoyer</a
+      >
+    </p>
+  </div>
+</div>
+
+<style>
+  .code-input {
+    width: 60px;
+    height: 60px;
+    text-align: center;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #075e54; /* Vert WhatsApp foncé */
+    background-color: #f0fdfa; /* Vert clair */
+    border: 2px solid #25d366; /* Vert WhatsApp */
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    font-family: monospace;
+  }
+
+  .code-input:focus {
+    outline: none;
+    border-color: #128c7e;
+    box-shadow: 0 0 0 4px rgba(37, 211, 102, 0.2);
+    transform: scale(1.1);
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out;
+  }
+
+  @keyframes fadeInUp {
+    0% {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-bounce-slow {
+    animation: bounce 2s infinite;
+  }
+
+  @keyframes bounce {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+</style>
+
+<script>
+  const inputs = document.querySelectorAll(".code-input");
+
+  inputs.forEach((input, index) => {
+    input.addEventListener("input", () => {
+      if (input.value.length === 1 && index < inputs.length - 1) {
+        inputs[index + 1].focus();
+      }
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && !input.value && index > 0) {
+        inputs[index - 1].focus();
+      }
+    });
+  });
+</script>

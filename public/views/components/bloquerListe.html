@@ -1,0 +1,54 @@
+<div class="bg-gray-900 text-white font-sans">
+  <div class="max-w-md mx-auto bg-gray-800 min-h-screen">
+    <div  class="px-6 py-4 flex items-center gap-7">
+      <i id="confback" class="fa-solid fa-arrow-left cursor-pointer"></i>
+      <p class="text-xl font-medium text-white">Confidentialites</p>
+    </div>
+
+   
+
+    
+
+   
+
+     
+      <div id="listedescontactbloquer" class="flex items-center px-6 py-4 hover:bg-gray-700 cursor-pointer">
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <h3 class="text-white font-medium">Contacts bloqués</h3>
+            <span id="nombreBloquer" class="px-2 py-0.5 bg-gray-700 rounded-full text-sm text-gray-300">
+              0
+            </span>
+          </div>
+        </div>
+        <div class="w-6 flex justify-center mr-6">
+          <i class="fa-solid fa-chevron-right"></i>
+        </div>
+        
+      </div>
+
+
+      
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll(".cursor-pointer").forEach((item) => {
+      item.addEventListener("click", function () {
+        this.style.transform = "scale(0.98)";
+        setTimeout(() => {
+          this.style.transform = "scale(1)";
+        }, 100);
+      });
+    });
+
+    const searchInput = document.querySelector('input[type="text"]');
+    searchInput.addEventListener("focus", function () {
+      this.parentElement.classList.add("ring-2", "ring-green-500");
+    });
+
+    searchInput.addEventListener("blur", function () {
+      this.parentElement.classList.remove("ring-2", "ring-green-500");
+    });
+  </script>
+</div>

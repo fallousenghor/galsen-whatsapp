@@ -1,0 +1,82 @@
+<div class="flex-1 chat-bg flex flex-col">
+  <!-- Header du chat -->
+  <div
+    class="bg-gray-800 p-4 border-b border-gray-700 flex items-center justify-between"
+  >
+    <div class="flex items-center space-x-3">
+      <div class="avatar bg-blue-500">FS</div>
+      <div>
+        <h2 class="font-medium">Fallou Senghor</h2>
+        <p class="text-xs text-green-400">en ligne aujourd'hui à 20:46</p>
+      </div>
+    </div>
+    <div class="flex space-x-2">
+      <button class="p-2 hover:bg-gray-700 rounded">
+        <i class="fas fa-search text-gray-400"></i>
+      </button>
+      <button class="p-2 hover:bg-gray-700 rounded">
+        <i class="fas fa-ellipsis-v text-gray-400"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Zone des messages -->
+  <div class="flex-1 p-4 overflow-y-auto">
+    <!-- Date separator -->
+    <div class="text-center mb-6">
+      <span class="bg-gray-700 px-3 py-1 rounded-full text-xs text-gray-300"
+        >31/03/2025</span
+      >
+    </div>
+    <div class="text-center mb-6">
+      <span class="bg-gray-700 px-3 py-1 rounded-full text-xs text-gray-300"
+        >Aujourd'hui</span
+      >
+    </div>
+
+    <!-- Messages -->
+    <div class="space-y-4">
+      <!-- Message reçu -->
+      <div class="flex items-start space-x-2">
+        <div class="avatar bg-blue-500 text-xs">FS</div>
+        <div class="message-bubble bg-gray-700 p-3">
+          <p class="text-sm">Salut, comment ça va ?</p>
+          <span class="text-xs text-gray-400">20:30</span>
+        </div>
+      </div>
+
+      <!-- Message envoyé -->
+      <div class="flex justify-end">
+        <div class="message-bubble bg-green-600 p-3">
+          <p class="text-sm">Ça va bien merci ! Et toi ?</p>
+          <div class="flex items-center justify-end space-x-1 mt-1">
+            <span class="text-xs text-green-200">20:32</span>
+            <i class="fas fa-check-double text-blue-300"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Zone de saisie -->
+  <div class="bg-gray-800 p-4 border-t border-gray-700">
+    <div class="flex items-center space-x-3">
+      <button class="p-2 hover:bg-gray-700 rounded-full">
+        <i class="fas fa-smile text-gray-400"></i>
+      </button>
+      <button class="p-2 hover:bg-gray-700 rounded-full">
+        <i class="fas fa-paperclip text-gray-400"></i>
+      </button>
+      <div class="flex-1 relative">
+        <input
+          type="text"
+          placeholder="Entrez un message"
+          class="w-full bg-gray-700 text-white px-4 py-2 rounded-full border border-gray-600 focus:outline-none focus:border-gray-500"
+        />
+      </div>
+      <button class="p-2 bg-green-600 hover:bg-green-700 rounded-full">
+        <i class="fas fa-paper-plane text-white"></i>
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,163 @@
+<div class="bg-gray-900 text-white h-screen overflow-hidden">
+  <div class="flex h-full">
+    <div
+      class="w-16 sidebar-bg flex flex-col justify-between items-center py-4 space-y-6"
+    >
+      <div class="">
+        <div class="bg-gray-700 p-2 rounded-lg">
+          <i class="fas fa-home text-gray-300"></i>
+        </div>
+        <div class="p-2 rounded-lg sidebar-item cursor-pointer">
+          <i class="fas fa-cog text-gray-400"></i>
+        </div>
+        <div class="p-2 rounded-lg sidebar-item cursor-pointer">
+          <i class="fas fa-comments text-gray-400"></i>
+        </div>
+        <div class="p-2 rounded-lg sidebar-item cursor-pointer">
+          <i class="fas fa-users text-gray-400"></i>
+        </div>
+      </div>
+      <div class="mt-auto space-y-4">
+         <div > 
+          <button id="paramsBtn" class="p-2 rounded-lg sidebar-item cursor-pointer">
+          <i class="fas fa-cog text-gray-400"></i>
+        </div>
+        <div  class="p-2 rounded-lg sidebar-item cursor-pointer">
+          <i class="fas fa-user text-gray-400"></i>
+        </div>
+        
+      </div>
+    </div>
+
+    <div id="panel" class="w-96 bg-gray-800 border-r border-gray-700">
+    
+      <!-- Header -->
+      <div
+        class="p-4 border-b border-gray-700 flex items-center justify-between"
+      >
+        <div class="flex items-center space-x-3">
+          <div class="avatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <span class="font-medium">WhatsApp</span>
+        </div>
+        <div class="flex space-x-2">
+          <button id="plus" class="p-1 hover:bg-gray-700 rounded">
+            <i class="fas fa-plus text-gray-400"></i>
+          </button>
+          <button class="p-1 hover:bg-gray-700 rounded">
+            <i class="fas fa-ellipsis-v text-gray-400"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Barre de recherche -->
+      <div class="p-4">
+        <div class="relative">
+          <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+          <input
+            type="text"
+            placeholder="Rechercher ou démarrer une discussion"
+            class="w-full bg-gray-700 text-white pl-10 pr-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-gray-500"
+          />
+        </div>
+      </div>
+
+      <!-- Navigation tabs -->
+      <div class="flex border-b border-gray-700">
+        <button
+          id="tab-all"
+          class="flex-1 py-3 text-green-500 border-b-2 border-green-500 font-medium"
+        >
+          Toutes
+        </button>
+        <button id="tab-unread" class="flex-1 py-3 text-gray-400 hover:text-white">
+          Non lues
+        </button>
+        <button id="tab-favorites" class="flex-1 py-3 text-gray-400 hover:text-white">
+          Favoris
+        </button>
+        <button id="tab-groups" class="flex-1 py-3 text-gray-400 hover:text-white">
+          Groupes
+        </button>
+      </div>
+
+      <!-- Zone d'affichage des groupes -->
+      <div id="groupes-container" class="hidden overflow-y-auto">
+       
+      </div>
+
+      <!-- Liste des conversations -->
+      <div id="discussions-list" class="overflow-y-auto flex-1">
+        <div class="text-center p-8 text-gray-400">
+          <i class="fas fa-comments text-4xl mb-4"></i>
+          <p>Aucune discussion</p>
+          <p class="text-sm mt-2">Commencez une nouvelle conversation</p>
+        </div>
+      </div>
+      
+      <div id="groupes-list" class="divide-y divide-gray-700 hidden"></div>
+    </div>
+
+    <!-- Zone de chat principale -->
+    <div class="flex-1 chat-bg flex flex-col">
+      <!-- Header du chat -->
+      <div
+        id="chat-header"
+        class="bg-gray-800 p-4 border-b border-gray-700 flex items-center justify-between"
+      >
+        <div class="flex items-center space-x-3">
+          <div id="firstChar" class="avatar bg-gray-500">
+            <i class="fas fa-user"></i>
+          </div>
+          <div>
+            <h2 id="contactName" class="font-medium">Sélectionnez une conversation</h2>
+            <p id="contactStatus" class="text-xs text-green-400"></p>
+          </div>
+        </div>
+        <div class="flex space-x-2">
+          <button class="p-2 hover:bg-gray-700 rounded">
+            <i class="fas fa-search text-gray-400"></i>
+          </button> 
+         
+          <button id="menupopup" class="p-2 hover:bg-gray-700 rounded">
+            <i class="fas fa-ellipsis-v text-gray-400"></i>
+          </button>
+        </div>
+        <div id="pup" class="absolute mt-[600px] ml-[1260px]"></div>
+      </div>
+
+      <!-- Zone des messages -->
+      <div id="messages-container" class="flex-1 p-4 overflow-y-auto">
+        <div class="text-center p-8 text-gray-400">
+          <i class="fas fa-comment-dots text-4xl mb-4"></i>
+          <p>Sélectionnez une conversation pour commencer à discuter</p>
+        </div>
+      </div>
+
+      <!-- Zone de saisie -->
+      <div id="message-input-container" class="bg-gray-800 p-4 border-t border-gray-700">
+        <div class="flex items-center space-x-3">
+          <button class="p-2 hover:bg-gray-700 rounded-full">
+            <i class="fas fa-smile text-gray-400"></i>
+          </button>
+          <button class="p-2 hover:bg-gray-700 rounded-full">
+            <i class="fas fa-paperclip text-gray-400"></i>
+          </button>
+          <div class="flex-1 relative">
+            <input
+              id="message-input"
+              type="text"
+              placeholder="Entrez un message"
+              class="w-full bg-gray-700 text-white px-4 py-2 rounded-full border border-gray-600 focus:outline-none focus:border-gray-500"
+              disabled
+            />
+          </div>
+          <button id="send-button" class="p-2 bg-green-600 hover:bg-green-700 rounded-full opacity-50" disabled>
+            <i class="fas fa-paper-plane text-white"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

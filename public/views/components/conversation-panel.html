@@ -1,0 +1,64 @@
+<div id="panel" class="w-80 bg-gray-800 border-r border-gray-700">
+  <!-- Header -->
+  <div class="p-4 border-b border-gray-700 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="avatar">
+        <i class="fas fa-user"></i>
+      </div>
+      <span class="font-medium">WhatsApp</span>
+    </div>
+    <div class="flex space-x-2">
+      <button id="plus" class="p-1 hover:bg-gray-700 rounded">
+        <i class="fas fa-plus text-gray-400"></i>
+      </button>
+      <button class="p-1 hover:bg-gray-700 rounded">
+        <i class="fas fa-ellipsis-v text-gray-400"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Barre de recherche -->
+  <div class="p-4">
+    <div class="relative">
+      <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+      <input
+        type="text"
+        placeholder="Rechercher ou démarrer une discussion"
+        class="w-full bg-gray-700 text-white pl-10 pr-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-gray-500"
+      />
+    </div>
+  </div>
+
+  <!-- Navigation tabs -->
+  <div class="flex border-b border-gray-700">
+    <button
+      class="flex-1 py-3 text-green-500 border-b-2 border-green-500 font-medium"
+    >
+      Toutes
+    </button>
+    <button class="flex-1 py-3 text-gray-400 hover:text-white">Non lues</button>
+    <button class="flex-1 py-3 text-gray-400 hover:text-white">Favoris</button>
+    <button class="flex-1 py-3 text-gray-400 hover:text-white">Groupes</button>
+  </div>
+
+  <!-- Liste des conversations -->
+  <div class="overflow-y-auto">
+    <div
+      class="p-4 hover:bg-gray-700 cursor-pointer border-l-4 border-green-500 bg-gray-750"
+    >
+      <div class="flex items-center space-x-3">
+        <div class="avatar bg-blue-500">FS</div>
+        <div class="flex-1">
+          <div class="flex justify-between items-start">
+            <h3 class="font-medium">Fallou Senghor</h3>
+            <span class="text-xs text-gray-400">20:46</span>
+          </div>
+          <p class="text-sm text-gray-400 flex items-center">
+            <i class="fas fa-check-double text-blue-400 mr-1"></i>
+            ok si kanam
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
