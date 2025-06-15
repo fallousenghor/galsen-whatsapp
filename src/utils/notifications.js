@@ -1,4 +1,3 @@
-// Système de notifications personnalisées
 export class NotificationManager {
   constructor() {
     this.container = null;
@@ -6,7 +5,6 @@ export class NotificationManager {
   }
 
   init() {
-    // Créer le conteneur de notifications s'il n'existe pas
     if (!document.getElementById('notification-container')) {
       this.container = document.createElement('div');
       this.container.id = 'notification-container';
@@ -31,7 +29,7 @@ export class NotificationManager {
 
     notification.innerHTML = `
       <div class="p-4">
-        <div class="flex items-start">
+        <div class="flex items-start w-[400px]">
           <div class="flex-shrink-0">
             <div class="w-6 h-6 ${bgColor} rounded-full flex items-center justify-center">
               <i class="${icon} text-white text-sm"></i>
@@ -51,17 +49,14 @@ export class NotificationManager {
 
     this.container.appendChild(notification);
 
-    // Animation d'entrée
     setTimeout(() => {
       notification.classList.remove('translate-x-full', 'opacity-0');
       notification.classList.add('translate-x-0', 'opacity-100');
     }, 100);
 
-    // Gestion de la fermeture
     const closeBtn = notification.querySelector('.close-notification');
     closeBtn.addEventListener('click', () => this.remove(notification));
 
-    // Auto-suppression
     if (duration > 0) {
       setTimeout(() => this.remove(notification), duration);
     }
@@ -115,5 +110,4 @@ export class NotificationManager {
   }
 }
 
-// Instance globale
 export const notifications = new NotificationManager();
