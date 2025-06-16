@@ -4,14 +4,15 @@
       class="w-16 sidebar-bg flex flex-col justify-between items-center py-4 space-y-6"
     >
       <div class="">
-        <div class="bg-gray-700 p-2 rounded-lg">
+        <div class="bg-gray-700 p-2 rounded-lg relative">
           <i class="fas fa-home text-gray-300"></i>
         </div>
         <div class="p-2 rounded-lg sidebar-item cursor-pointer">
           <i class="fas fa-cog text-gray-400"></i>
         </div>
-        <div class="p-2 rounded-lg sidebar-item cursor-pointer">
+        <div class="p-2 rounded-lg sidebar-item cursor-pointer relative">
           <i class="fas fa-comments text-gray-400"></i>
+          <!-- Le badge sera ajouté dynamiquement ici -->
         </div>
         <div class="p-2 rounded-lg sidebar-item cursor-pointer">
           <i class="fas fa-users text-gray-400"></i>
@@ -67,12 +68,13 @@
       <div class="flex border-b border-gray-700">
         <button
           id="tab-all"
-          class="flex-1 py-3 text-green-500 border-b-2 border-green-500 font-medium"
+          class="flex-1 py-3 text-green-500 border-b-2 border-green-500 font-medium relative"
         >
           Toutes
         </button>
-        <button id="tab-unread" class="flex-1 py-3 text-gray-400 hover:text-white">
+        <button id="tab-unread" class="flex-1 py-3 text-gray-400 hover:text-white relative">
           Non lues
+          <!-- Badge pour les messages non lus sera ajouté ici -->
         </button>
         <button id="tab-favorites" class="flex-1 py-3 text-gray-400 hover:text-white">
           Favoris

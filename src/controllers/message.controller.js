@@ -3,8 +3,10 @@ import {
   getMessagesBetweenUsers, 
   getGroupMessages,
   markMessageAsRead,
+  markConversationAsRead,
   clearMessageCache,
-  preloadConversationMessages
+  preloadConversationMessages,
+  getUnreadMessagesCount
 } from "../services/message.service.js";
 import { getContactById } from "../services/contact.service.js";
 import { getGroupeById } from "../services/groupe.service.js";
@@ -13,6 +15,7 @@ import { createOrUpdateDiscussion } from "../services/discussion.service.js";
 
 let currentConversation = null;
 let messagePollingInterval = null;
+let unreadCountInterval = null;
 let isMessageSending = false;
 let lastMessageId = null;
 let messageQueue = [];
@@ -29,7 +32,6 @@ export function setupMessageEvents() {
 
   console.log('Événements de messagerie configurés');
 
-  // Envoi de message
   sendButton.addEventListener('click', handleSendMessage);
   messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -38,15 +40,14 @@ export function setupMessageEvents() {
     }
   });
 
-  // Activer/désactiver le bouton d'envoi selon le contenu
   messageInput.addEventListener('input', () => {
     const hasContent = messageInput.value.trim().length > 0;
     sendButton.disabled = !hasContent || !currentConversation || isMessageSending;
     sendButton.classList.toggle('opacity-50', !hasContent || !currentConversation || isMessageSending);
   });
 
-  // Démarrer le polling des messages avec une fréquence réduite
   startMessagePolling();
+  startUnreadCountPolling();
 }
 
 async function processMessageQueue() {
@@ -62,7 +63,6 @@ async function processMessageQueue() {
       await sendMessageToServer(messageData);
     } catch (error) {
       console.error('Erreur traitement queue:', error);
-      // Remettre le message en queue en cas d'erreur
       messageQueue.unshift(messageData);
       break;
     }
@@ -76,7 +76,6 @@ async function sendMessageToServer(messageData) {
     const sentMessage = await sendMessage(messageData);
     console.log('Message envoyé avec succès:', sentMessage);
     
-    // Mettre à jour l'interface après envoi réussi
     setTimeout(async () => {
       await loadMessages();
       refreshDiscussions();
@@ -100,7 +99,6 @@ async function handleSendMessage() {
     return;
   }
 
-  // Vérifier les doublons
   if (lastMessageId && messageText === lastMessageId) {
     console.warn('Message dupliqué détecté, ignoré');
     return;
@@ -130,7 +128,6 @@ async function handleSendMessage() {
     if (currentConversation.type === 'contact') {
       messageData.receiverId = currentConversation.id;
       
-      // Créer ou mettre à jour la discussion
       await createOrUpdateDiscussion({
         contactId: currentConversation.id,
         participants: [currentUser.id, currentConversation.id],
@@ -145,7 +142,6 @@ async function handleSendMessage() {
     } else if (currentConversation.type === 'group') {
       messageData.groupId = currentConversation.id;
       
-      // Créer ou mettre à jour la discussion de groupe
       await createOrUpdateDiscussion({
         groupId: currentConversation.id,
         isGroup: true,
@@ -160,14 +156,10 @@ async function handleSendMessage() {
       });
     }
 
-    // Afficher immédiatement le message dans l'interface
     displayOptimisticMessage(messageData);
-
-    // Vider le champ de saisie immédiatement
     messageInput.value = '';
     lastMessageId = messageText;
 
-    // Ajouter à la queue pour envoi
     messageQueue.push(messageData);
     processMessageQueue();
     
@@ -226,7 +218,6 @@ export async function setCurrentConversation(type, id, name) {
   
   currentConversation = { type, id, name };
   
-  // Mettre à jour l'interface
   const contactNameElement = document.getElementById('contactName');
   const firstCharElement = document.getElementById('firstChar');
   const contactStatusElement = document.getElementById('contactStatus');
@@ -241,8 +232,6 @@ export async function setCurrentConversation(type, id, name) {
     const initials = name.split(' ').map(n => n[0]).join('').toUpperCase();
     firstCharElement.textContent = initials;
     firstCharElement.innerHTML = initials;
-    
-    // Changer la couleur selon le type
     firstCharElement.className = `avatar ${type === 'group' ? 'bg-green-500' : 'bg-blue-500'}`;
   }
 
@@ -250,7 +239,6 @@ export async function setCurrentConversation(type, id, name) {
     contactStatusElement.textContent = type === 'group' ? 'Groupe' : 'en ligne';
   }
 
-  // Activer la zone de saisie
   if (messageInput) {
     messageInput.disabled = false;
     messageInput.placeholder = `Envoyer un message à ${name}`;
@@ -262,13 +250,16 @@ export async function setCurrentConversation(type, id, name) {
     sendButton.classList.toggle('opacity-50', !messageInput?.value.trim());
   }
 
-  // Précharger les messages en arrière-plan
   const currentUser = JSON.parse(localStorage.getItem('user'));
   if (currentUser?.id) {
     preloadConversationMessages(type, id, currentUser.id);
+    
+    // Marquer la conversation comme lue
+    if (type === 'contact') {
+      await markConversationAsRead(currentUser.id, id);
+    }
   }
 
-  // Charger les messages
   await loadMessages();
 }
 
@@ -291,24 +282,6 @@ async function loadMessages() {
       messages = await getMessagesBetweenUsers(currentUser.id, currentConversation.id);
     } else if (currentConversation.type === 'group') {
       messages = await getGroupMessages(currentConversation.id);
-    }
-
-    // Marquer les messages comme lus (en arrière-plan)
-    const unreadMessages = messages.filter(m => 
-      m.receiverId === currentUser.id && m.status !== 'read'
-    );
-    
-    // Traitement asynchrone pour ne pas bloquer l'affichage
-    if (unreadMessages.length > 0) {
-      setTimeout(async () => {
-        for (const message of unreadMessages) {
-          try {
-            await markMessageAsRead(message.id);
-          } catch (error) {
-            console.error('Erreur marquage message lu:', error);
-          }
-        }
-      }, 100);
     }
 
     displayMessages(messages, currentUser.id);
@@ -343,10 +316,8 @@ function displayMessages(messages, currentUserId) {
     return;
   }
 
-  // Supprimer les messages optimistes
   document.querySelectorAll('.optimistic-message').forEach(el => el.remove());
 
-  // Trier les messages par timestamp et supprimer les doublons
   const uniqueMessages = messages.filter((message, index, self) => 
     index === self.findIndex(m => m.id === message.id)
   );
@@ -355,13 +326,11 @@ function displayMessages(messages, currentUserId) {
     new Date(a.timestamp) - new Date(b.timestamp)
   );
 
-  // Grouper les messages par date
   const messagesByDate = groupMessagesByDate(sortedMessages);
   
   let messagesHTML = '';
 
   Object.entries(messagesByDate).forEach(([date, dayMessages]) => {
-    // Ajouter le séparateur de date
     messagesHTML += `
       <div class="text-center mb-6">
         <span class="bg-gray-700 px-3 py-1 rounded-full text-xs text-gray-300">
@@ -370,7 +339,6 @@ function displayMessages(messages, currentUserId) {
       </div>
     `;
 
-    // Ajouter les messages du jour
     dayMessages.forEach(message => {
       const isOwn = message.senderId === currentUserId;
       const time = new Date(message.timestamp).toLocaleTimeString('fr-FR', {
@@ -385,7 +353,7 @@ function displayMessages(messages, currentUserId) {
               <p class="text-sm text-white break-words">${escapeHtml(message.content)}</p>
               <div class="flex items-center justify-end space-x-1 mt-1">
                 <span class="text-xs text-green-200">${time}</span>
-                <i class="fas fa-check-double ${getStatusIcon(message.status)}"></i>
+                ${getStatusIcon(message.status)}
               </div>
             </div>
           </div>
@@ -407,8 +375,6 @@ function displayMessages(messages, currentUserId) {
   });
 
   messagesContainer.innerHTML = messagesHTML;
-  
-  // Scroll vers le bas
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
@@ -454,13 +420,52 @@ function escapeHtml(text) {
 function getStatusIcon(status) {
   switch (status) {
     case 'sent':
-      return 'text-gray-400';
+      return '<i class="fas fa-check text-gray-400" title="Envoyé"></i>';
     case 'delivered':
-      return 'text-blue-300';
+      return '<i class="fas fa-check-double text-gray-400" title="Livré"></i>';
     case 'read':
-      return 'text-blue-400';
+      return '<i class="fas fa-check-double text-blue-400" title="Lu"></i>';
     default:
-      return 'text-gray-400';
+      return '<i class="fas fa-clock text-gray-400" title="En cours"></i>';
+  }
+}
+
+async function updateUnreadBadge() {
+  try {
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    if (!currentUser?.id) return;
+
+    const unreadCount = await getUnreadMessagesCount(currentUser.id);
+    
+    // Mettre à jour le badge global
+    let globalBadge = document.getElementById('global-unread-badge');
+    if (unreadCount > 0) {
+      if (!globalBadge) {
+        globalBadge = document.createElement('span');
+        globalBadge.id = 'global-unread-badge';
+        globalBadge.className = 'absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1 font-bold shadow-lg';
+        
+        const chatIcon = document.querySelector('.fa-comments')?.parentElement;
+        if (chatIcon) {
+          chatIcon.style.position = 'relative';
+          chatIcon.appendChild(globalBadge);
+        }
+      }
+      globalBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+      globalBadge.style.display = 'flex';
+    } else if (globalBadge) {
+      globalBadge.style.display = 'none';
+    }
+
+    // Mettre à jour le titre de la page
+    if (unreadCount > 0) {
+      document.title = `(${unreadCount}) WhatsApp`;
+    } else {
+      document.title = 'WhatsApp';
+    }
+
+  } catch (error) {
+    console.error('Erreur mise à jour badge:', error);
   }
 }
 
@@ -469,7 +474,6 @@ function startMessagePolling() {
     clearInterval(messagePollingInterval);
   }
   
-  // Réduire la fréquence de polling pour éviter la surcharge
   messagePollingInterval = setInterval(async () => {
     if (currentConversation && !isMessageSending) {
       try {
@@ -478,7 +482,24 @@ function startMessagePolling() {
         console.warn('Erreur polling messages:', error);
       }
     }
-  }, 10000); // Vérifier toutes les 10 secondes au lieu de 5
+  }, 5000);
+}
+
+function startUnreadCountPolling() {
+  if (unreadCountInterval) {
+    clearInterval(unreadCountInterval);
+  }
+  
+  unreadCountInterval = setInterval(async () => {
+    try {
+      await updateUnreadBadge();
+    } catch (error) {
+      console.warn('Erreur polling unread count:', error);
+    }
+  }, 3000);
+  
+  // Mise à jour immédiate
+  updateUnreadBadge();
 }
 
 export function stopMessagePolling() {
@@ -486,9 +507,12 @@ export function stopMessagePolling() {
     clearInterval(messagePollingInterval);
     messagePollingInterval = null;
   }
+  if (unreadCountInterval) {
+    clearInterval(unreadCountInterval);
+    unreadCountInterval = null;
+  }
 }
 
-// Fonction pour réinitialiser la conversation
 export function clearCurrentConversation() {
   currentConversation = null;
   lastMessageId = null;
@@ -537,7 +561,6 @@ export function clearCurrentConversation() {
   }
 }
 
-// Fonction pour vider le cache des messages
 export function clearMessagesCache() {
   clearMessageCache();
 }

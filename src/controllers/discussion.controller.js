@@ -37,8 +37,6 @@ async function loadDiscussions() {
       return;
     }
     
-    // Enrichir les conversations avec les détails des contacts/groupes
-    // Utiliser Promise.allSettled pour éviter qu'une erreur bloque tout
     const enrichedConversations = await Promise.allSettled(
       conversations.map(async (conv) => {
         try {
@@ -75,7 +73,6 @@ async function loadDiscussions() {
       })
     );
 
-    // Filtrer les résultats réussis
     allDiscussions = enrichedConversations
       .filter(result => result.status === 'fulfilled')
       .map(result => result.value);
@@ -165,7 +162,7 @@ function displayDiscussions(discussions) {
               ${discussion.avatar}
             </div>
             ${discussion.unreadCount > 0 ? `
-              <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1 font-bold shadow-lg">
+              <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1 font-bold shadow-lg notification-badge">
                 ${discussion.unreadCount > 99 ? '99+' : discussion.unreadCount}
               </span>
             ` : ''}
@@ -182,7 +179,7 @@ function displayDiscussions(discussions) {
             </div>
             <div class="flex items-center mt-1">
               ${isOwnMessage ? `
-                <i class="fas fa-check-double ${getMessageStatusClass(discussion.lastMessage.status)} mr-1 flex-shrink-0"></i>
+                ${getMessageStatusIcon(discussion.lastMessage.status)}
               ` : ''}
               <p class="text-sm text-gray-400 truncate ${discussion.unreadCount > 0 ? 'font-medium text-white' : ''}">
                 ${lastMessagePreview}
@@ -199,35 +196,38 @@ function displayDiscussions(discussions) {
 
   discussionsContainer.innerHTML = discussionsHTML;
 
-  // Ajouter les événements de clic
   document.querySelectorAll('.discussion-item').forEach(item => {
     item.addEventListener('click', async () => {
       const discussionId = item.dataset.discussionId;
       const discussionType = item.dataset.discussionType;
       const discussionName = item.dataset.discussionName;
 
-      // Marquer comme sélectionné
       document.querySelectorAll('.discussion-item').forEach(i => 
         i.classList.remove('border-green-500', 'bg-gray-750')
       );
       item.classList.add('border-green-500', 'bg-gray-750');
 
-      // Définir la conversation courante
       try {
         await setCurrentConversation(discussionType, discussionId, discussionName);
 
-        // Supprimer l'indicateur de messages non lus
-        const unreadBadge = item.querySelector('.bg-red-500');
+        // Supprimer le badge de messages non lus
+        const unreadBadge = item.querySelector('.notification-badge');
         if (unreadBadge) {
           unreadBadge.remove();
         }
 
-        // Mettre à jour le texte si c'était en gras
+        // Mettre à jour le style du texte
         const messageText = item.querySelector('.text-gray-400');
         if (messageText) {
           messageText.classList.remove('font-medium', 'text-white');
           messageText.classList.add('text-gray-400');
         }
+
+        // Recharger les discussions pour mettre à jour les compteurs
+        setTimeout(() => {
+          loadDiscussions();
+        }, 1000);
+
       } catch (error) {
         console.error('Erreur ouverture conversation:', error);
       }
@@ -244,14 +244,16 @@ function getFilterLabel(filter) {
   }
 }
 
-function getMessageStatusClass(status) {
+function getMessageStatusIcon(status) {
   switch (status) {
-    case 'read':
-      return 'text-blue-400';
+    case 'sent':
+      return '<i class="fas fa-check text-gray-400 mr-1 flex-shrink-0" title="Envoyé"></i>';
     case 'delivered':
-      return 'text-blue-300';
+      return '<i class="fas fa-check-double text-gray-400 mr-1 flex-shrink-0" title="Livré"></i>';
+    case 'read':
+      return '<i class="fas fa-check-double text-blue-400 mr-1 flex-shrink-0" title="Lu"></i>';
     default:
-      return 'text-gray-400';
+      return '<i class="fas fa-clock text-gray-400 mr-1 flex-shrink-0" title="En cours"></i>';
   }
 }
 
@@ -267,7 +269,6 @@ function setupFilterTabs() {
     const tab = document.getElementById(tabId);
     if (tab) {
       tab.addEventListener('click', () => {
-        // Réinitialiser tous les onglets
         Object.keys(tabs).forEach(id => {
           const tabElement = document.getElementById(id);
           if (tabElement) {
@@ -276,23 +277,18 @@ function setupFilterTabs() {
           }
         });
 
-        // Activer l'onglet cliqué
         tab.classList.remove('text-gray-400', 'hover:text-white');
         tab.classList.add('text-green-500', 'border-b-2', 'border-green-500', 'font-medium');
 
-        // Définir le filtre et afficher
         currentFilter = filterType;
         
         if (filterType === 'groups') {
-          // Afficher les groupes
           document.getElementById('discussions-list').classList.add('hidden');
           document.getElementById('groupes-list').classList.remove('hidden');
-          // Charger les groupes si nécessaire
           if (window.displayGroupes) {
             window.displayGroupes();
           }
         } else {
-          // Afficher les discussions
           document.getElementById('discussions-list').classList.remove('hidden');
           document.getElementById('groupes-list').classList.add('hidden');
           displayDiscussions(getFilteredDiscussions());
@@ -308,7 +304,6 @@ function setupSearchFilter() {
     let searchTimeout;
     
     searchInput.addEventListener('input', (e) => {
-      // Debounce pour éviter trop de recherches
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(() => {
         const searchTerm = e.target.value.toLowerCase().trim();
@@ -325,18 +320,16 @@ function setupSearchFilter() {
         );
 
         displayDiscussions(filteredDiscussions);
-      }, 300); // Attendre 300ms après la dernière frappe
+      }, 300);
     });
   }
 }
 
-// Fonction pour rafraîchir les discussions périodiquement
 export function startDiscussionPolling() {
   if (discussionPollingInterval) {
     clearInterval(discussionPollingInterval);
   }
   
-  // Réduire la fréquence pour éviter la surcharge
   discussionPollingInterval = setInterval(async () => {
     if (!isLoadingDiscussions) {
       try {
@@ -345,7 +338,7 @@ export function startDiscussionPolling() {
         console.warn('Erreur polling discussions:', error);
       }
     }
-  }, 15000); // Rafraîchir toutes les 15 secondes au lieu de 10
+  }, 10000);
 }
 
 export function stopDiscussionPolling() {
@@ -355,7 +348,6 @@ export function stopDiscussionPolling() {
   }
 }
 
-// Fonction pour rafraîchir manuellement
 export async function refreshDiscussions() {
   if (!isLoadingDiscussions) {
     await loadDiscussions();

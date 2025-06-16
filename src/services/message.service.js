@@ -5,14 +5,13 @@ const BASE_URL = "https://backend-js-server-vrai.onrender.com/messages";
 const messageCache = new Map();
 const conversationCache = new Map();
 let lastCacheUpdate = 0;
-const CACHE_DURATION = 30000; // 30 secondes
+const CACHE_DURATION = 10000; // 10 secondes pour plus de réactivité
 
 async function fetchData(url, options = {}) {
   console.log('Requête vers:', url);
   
-  // Ajouter un timeout pour éviter les requêtes qui traînent
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 secondes timeout
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
   
   try {
     const response = await fetch(url, {
@@ -65,7 +64,6 @@ export async function sendMessage(messageData) {
   try {
     const user = getCurrentUser();
     
-    // Générer un ID unique pour éviter les doublons
     const messageId = generateMessageId();
     
     const message = {
@@ -73,12 +71,13 @@ export async function sendMessage(messageData) {
       id: messageId,
       senderId: user.id,
       timestamp: new Date().toISOString(),
-      status: 'sent'
+      status: 'sent', // sent -> delivered -> read
+      readAt: null,
+      deliveredAt: null
     };
 
     console.log('Envoi du message:', message);
 
-    // Envoyer le message avec retry en cas d'échec
     let attempts = 0;
     const maxAttempts = 3;
     
@@ -97,6 +96,15 @@ export async function sendMessage(messageData) {
         conversationCache.clear();
         updateCacheTimestamp();
         
+        // Marquer automatiquement comme livré après un délai
+        setTimeout(async () => {
+          try {
+            await markMessageAsDelivered(result.id);
+          } catch (error) {
+            console.warn('Erreur marquage livré:', error);
+          }
+        }, 2000);
+        
         return result;
       } catch (error) {
         attempts++;
@@ -104,7 +112,7 @@ export async function sendMessage(messageData) {
           throw error;
         }
         console.warn(`Tentative ${attempts} échouée, retry...`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempts)); // Délai progressif
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
       }
     }
   } catch (error) {
@@ -117,7 +125,6 @@ export async function getMessagesBetweenUsers(userId1, userId2) {
   try {
     const cacheKey = getCacheKey('messages', userId1, userId2);
     
-    // Vérifier le cache
     if (isCacheValid() && messageCache.has(cacheKey)) {
       console.log('Messages récupérés depuis le cache');
       return messageCache.get(cacheKey);
@@ -125,7 +132,6 @@ export async function getMessagesBetweenUsers(userId1, userId2) {
 
     console.log('Récupération des messages entre:', userId1, 'et', userId2);
     
-    // Utiliser Promise.all pour paralléliser les requêtes
     const [sentMessages, receivedMessages] = await Promise.all([
       fetchData(`${BASE_URL}?senderId=${userId1}&receiverId=${userId2}`),
       fetchData(`${BASE_URL}?senderId=${userId2}&receiverId=${userId1}`)
@@ -133,7 +139,6 @@ export async function getMessagesBetweenUsers(userId1, userId2) {
     
     const allMessages = [...sentMessages, ...receivedMessages];
     
-    // Supprimer les doublons basés sur l'ID
     const uniqueMessages = allMessages.filter((message, index, self) => 
       index === self.findIndex(m => m.id === message.id)
     );
@@ -144,7 +149,6 @@ export async function getMessagesBetweenUsers(userId1, userId2) {
     
     console.log('Messages trouvés:', sortedMessages.length);
     
-    // Mettre en cache
     messageCache.set(cacheKey, sortedMessages);
     updateCacheTimestamp();
     
@@ -159,7 +163,6 @@ export async function getGroupMessages(groupId) {
   try {
     const cacheKey = getCacheKey('group_messages', groupId);
     
-    // Vérifier le cache
     if (isCacheValid() && messageCache.has(cacheKey)) {
       console.log('Messages de groupe récupérés depuis le cache');
       return messageCache.get(cacheKey);
@@ -169,7 +172,6 @@ export async function getGroupMessages(groupId) {
     
     const messages = await fetchData(`${BASE_URL}?groupId=${groupId}`);
     
-    // Supprimer les doublons
     const uniqueMessages = messages.filter((message, index, self) => 
       index === self.findIndex(m => m.id === message.id)
     );
@@ -180,7 +182,6 @@ export async function getGroupMessages(groupId) {
     
     console.log('Messages du groupe trouvés:', sortedMessages.length);
     
-    // Mettre en cache
     messageCache.set(cacheKey, sortedMessages);
     updateCacheTimestamp();
     
@@ -196,11 +197,14 @@ export async function markMessageAsRead(messageId) {
     const result = await fetchData(`${BASE_URL}/${messageId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: 'read' }),
+      body: JSON.stringify({ 
+        status: 'read',
+        readAt: new Date().toISOString()
+      }),
     });
     
-    // Invalider le cache
     messageCache.clear();
+    conversationCache.clear();
     
     return result;
   } catch (error) {
@@ -214,11 +218,14 @@ export async function markMessageAsDelivered(messageId) {
     const result = await fetchData(`${BASE_URL}/${messageId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: 'delivered' }),
+      body: JSON.stringify({ 
+        status: 'delivered',
+        deliveredAt: new Date().toISOString()
+      }),
     });
     
-    // Invalider le cache
     messageCache.clear();
+    conversationCache.clear();
     
     return result;
   } catch (error) {
@@ -227,11 +234,50 @@ export async function markMessageAsDelivered(messageId) {
   }
 }
 
+export async function markConversationAsRead(userId, contactId) {
+  try {
+    // Récupérer tous les messages non lus de cette conversation
+    const messages = await getMessagesBetweenUsers(userId, contactId);
+    const unreadMessages = messages.filter(m => 
+      m.receiverId === userId && m.status !== 'read'
+    );
+    
+    // Marquer tous les messages non lus comme lus
+    const markPromises = unreadMessages.map(message => 
+      markMessageAsRead(message.id)
+    );
+    
+    await Promise.all(markPromises);
+    
+    console.log(`${unreadMessages.length} messages marqués comme lus`);
+    
+    return unreadMessages.length;
+  } catch (error) {
+    console.error("Erreur marquage conversation lue:", error);
+    throw error;
+  }
+}
+
+export async function getUnreadMessagesCount(userId) {
+  try {
+    const conversations = await getUserConversations(userId);
+    let totalUnread = 0;
+    
+    conversations.forEach(conv => {
+      totalUnread += conv.unreadCount || 0;
+    });
+    
+    return totalUnread;
+  } catch (error) {
+    console.error("Erreur comptage messages non lus:", error);
+    return 0;
+  }
+}
+
 export async function getUserConversations(userId) {
   try {
     const cacheKey = getCacheKey('conversations', userId);
     
-    // Vérifier le cache
     if (isCacheValid() && conversationCache.has(cacheKey)) {
       console.log('Conversations récupérées depuis le cache');
       return conversationCache.get(cacheKey);
@@ -239,7 +285,6 @@ export async function getUserConversations(userId) {
 
     console.log('Récupération des conversations pour:', userId);
     
-    // Paralléliser les requêtes
     const [sentMessages, receivedMessages] = await Promise.all([
       fetchData(`${BASE_URL}?senderId=${userId}`),
       fetchData(`${BASE_URL}?receiverId=${userId}`)
@@ -263,17 +308,15 @@ export async function getUserConversations(userId) {
       
       const conversation = conversations.get(conversationId);
       
-      // Éviter les doublons dans les messages de conversation
       if (!conversation.messages.find(m => m.id === message.id)) {
         conversation.messages.push(message);
       }
       
-      // Compter les messages non lus
+      // Compter SEULEMENT les messages reçus non lus
       if (message.receiverId === userId && message.status !== 'read') {
         conversation.unreadCount++;
       }
       
-      // Garder le dernier message
       if (new Date(message.timestamp) > new Date(conversation.lastMessage.timestamp)) {
         conversation.lastMessage = message;
       }
@@ -285,7 +328,6 @@ export async function getUserConversations(userId) {
     
     console.log('Conversations trouvées:', result.length);
     
-    // Mettre en cache
     conversationCache.set(cacheKey, result);
     updateCacheTimestamp();
     
@@ -296,7 +338,6 @@ export async function getUserConversations(userId) {
   }
 }
 
-// Fonction pour vider le cache manuellement
 export function clearMessageCache() {
   messageCache.clear();
   conversationCache.clear();
@@ -304,7 +345,6 @@ export function clearMessageCache() {
   console.log('Cache des messages vidé');
 }
 
-// Fonction pour précharger les messages d'une conversation
 export async function preloadConversationMessages(type, id, userId) {
   try {
     if (type === 'contact') {
