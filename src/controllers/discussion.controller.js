@@ -5,6 +5,8 @@ import { setCurrentConversation } from "./message.controller.js";
 
 let allDiscussions = [];
 let currentFilter = 'all';
+let isLoadingDiscussions = false;
+let discussionPollingInterval = null;
 
 export async function setupDiscussionEvents() {
   await loadDiscussions();
@@ -13,6 +15,13 @@ export async function setupDiscussionEvents() {
 }
 
 async function loadDiscussions() {
+  if (isLoadingDiscussions) {
+    console.log('Chargement des discussions déjà en cours...');
+    return;
+  }
+
+  isLoadingDiscussions = true;
+
   try {
     const currentUser = JSON.parse(localStorage.getItem('user'));
     if (!currentUser?.id) {
@@ -29,45 +38,55 @@ async function loadDiscussions() {
     }
     
     // Enrichir les conversations avec les détails des contacts/groupes
-    allDiscussions = await Promise.all(conversations.map(async (conv) => {
-      try {
-        if (conv.isGroup) {
-          const group = await getGroupeById(conv.id);
+    // Utiliser Promise.allSettled pour éviter qu'une erreur bloque tout
+    const enrichedConversations = await Promise.allSettled(
+      conversations.map(async (conv) => {
+        try {
+          if (conv.isGroup) {
+            const group = await getGroupeById(conv.id);
+            return {
+              ...conv,
+              name: group?.nom || 'Groupe inconnu',
+              type: 'group',
+              avatar: 'G',
+              isFavorite: conv.isFavorite || false
+            };
+          } else {
+            const contact = await getContactById(conv.id);
+            return {
+              ...conv,
+              name: contact ? `${contact.prenom} ${contact.nom}` : 'Contact inconnu',
+              type: 'contact',
+              avatar: contact ? `${contact.prenom[0]}${contact.nom[0]}` : 'C',
+              phone: contact?.telephone,
+              isFavorite: conv.isFavorite || false
+            };
+          }
+        } catch (error) {
+          console.error('Erreur enrichissement conversation:', error);
           return {
             ...conv,
-            name: group?.nom || 'Groupe inconnu',
-            type: 'group',
-            avatar: 'G',
-            isFavorite: conv.isFavorite || false
-          };
-        } else {
-          const contact = await getContactById(conv.id);
-          return {
-            ...conv,
-            name: contact ? `${contact.prenom} ${contact.nom}` : 'Contact inconnu',
-            type: 'contact',
-            avatar: contact ? `${contact.prenom[0]}${contact.nom[0]}` : 'C',
-            phone: contact?.telephone,
-            isFavorite: conv.isFavorite || false
+            name: 'Inconnu',
+            type: conv.isGroup ? 'group' : 'contact',
+            avatar: 'U',
+            isFavorite: false
           };
         }
-      } catch (error) {
-        console.error('Erreur enrichissement conversation:', error);
-        return {
-          ...conv,
-          name: 'Inconnu',
-          type: conv.isGroup ? 'group' : 'contact',
-          avatar: 'U',
-          isFavorite: false
-        };
-      }
-    }));
+      })
+    );
+
+    // Filtrer les résultats réussis
+    allDiscussions = enrichedConversations
+      .filter(result => result.status === 'fulfilled')
+      .map(result => result.value);
 
     displayDiscussions(getFilteredDiscussions());
     
   } catch (error) {
     console.error('Erreur chargement discussions:', error);
     displayEmptyState();
+  } finally {
+    isLoadingDiscussions = false;
   }
 }
 
@@ -194,19 +213,23 @@ function displayDiscussions(discussions) {
       item.classList.add('border-green-500', 'bg-gray-750');
 
       // Définir la conversation courante
-      await setCurrentConversation(discussionType, discussionId, discussionName);
+      try {
+        await setCurrentConversation(discussionType, discussionId, discussionName);
 
-      // Supprimer l'indicateur de messages non lus
-      const unreadBadge = item.querySelector('.bg-red-500');
-      if (unreadBadge) {
-        unreadBadge.remove();
-      }
+        // Supprimer l'indicateur de messages non lus
+        const unreadBadge = item.querySelector('.bg-red-500');
+        if (unreadBadge) {
+          unreadBadge.remove();
+        }
 
-      // Mettre à jour le texte si c'était en gras
-      const messageText = item.querySelector('.text-gray-400');
-      if (messageText) {
-        messageText.classList.remove('font-medium', 'text-white');
-        messageText.classList.add('text-gray-400');
+        // Mettre à jour le texte si c'était en gras
+        const messageText = item.querySelector('.text-gray-400');
+        if (messageText) {
+          messageText.classList.remove('font-medium', 'text-white');
+          messageText.classList.add('text-gray-400');
+        }
+      } catch (error) {
+        console.error('Erreur ouverture conversation:', error);
       }
     });
   });
@@ -282,33 +305,59 @@ function setupFilterTabs() {
 function setupSearchFilter() {
   const searchInput = document.querySelector('input[placeholder="Rechercher ou démarrer une discussion"]');
   if (searchInput) {
+    let searchTimeout;
+    
     searchInput.addEventListener('input', (e) => {
-      const searchTerm = e.target.value.toLowerCase().trim();
-      
-      if (searchTerm === '') {
-        displayDiscussions(getFilteredDiscussions());
-        return;
-      }
+      // Debounce pour éviter trop de recherches
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        const searchTerm = e.target.value.toLowerCase().trim();
+        
+        if (searchTerm === '') {
+          displayDiscussions(getFilteredDiscussions());
+          return;
+        }
 
-      const filteredDiscussions = getFilteredDiscussions().filter(discussion => 
-        discussion.name.toLowerCase().includes(searchTerm) ||
-        discussion.lastMessage.content.toLowerCase().includes(searchTerm) ||
-        (discussion.phone && discussion.phone.includes(searchTerm))
-      );
+        const filteredDiscussions = getFilteredDiscussions().filter(discussion => 
+          discussion.name.toLowerCase().includes(searchTerm) ||
+          discussion.lastMessage.content.toLowerCase().includes(searchTerm) ||
+          (discussion.phone && discussion.phone.includes(searchTerm))
+        );
 
-      displayDiscussions(filteredDiscussions);
+        displayDiscussions(filteredDiscussions);
+      }, 300); // Attendre 300ms après la dernière frappe
     });
   }
 }
 
 // Fonction pour rafraîchir les discussions périodiquement
 export function startDiscussionPolling() {
-  setInterval(async () => {
-    await loadDiscussions();
-  }, 10000); // Rafraîchir toutes les 10 secondes
+  if (discussionPollingInterval) {
+    clearInterval(discussionPollingInterval);
+  }
+  
+  // Réduire la fréquence pour éviter la surcharge
+  discussionPollingInterval = setInterval(async () => {
+    if (!isLoadingDiscussions) {
+      try {
+        await loadDiscussions();
+      } catch (error) {
+        console.warn('Erreur polling discussions:', error);
+      }
+    }
+  }, 15000); // Rafraîchir toutes les 15 secondes au lieu de 10
+}
+
+export function stopDiscussionPolling() {
+  if (discussionPollingInterval) {
+    clearInterval(discussionPollingInterval);
+    discussionPollingInterval = null;
+  }
 }
 
 // Fonction pour rafraîchir manuellement
 export async function refreshDiscussions() {
-  await loadDiscussions();
+  if (!isLoadingDiscussions) {
+    await loadDiscussions();
+  }
 }

@@ -2,7 +2,9 @@ import {
   sendMessage, 
   getMessagesBetweenUsers, 
   getGroupMessages,
-  markMessageAsRead
+  markMessageAsRead,
+  clearMessageCache,
+  preloadConversationMessages
 } from "../services/message.service.js";
 import { getContactById } from "../services/contact.service.js";
 import { getGroupeById } from "../services/groupe.service.js";
@@ -12,6 +14,9 @@ import { createOrUpdateDiscussion } from "../services/discussion.service.js";
 let currentConversation = null;
 let messagePollingInterval = null;
 let isMessageSending = false;
+let lastMessageId = null;
+let messageQueue = [];
+let isProcessingQueue = false;
 
 export function setupMessageEvents() {
   const messageInput = document.getElementById('message-input');
@@ -40,8 +45,48 @@ export function setupMessageEvents() {
     sendButton.classList.toggle('opacity-50', !hasContent || !currentConversation || isMessageSending);
   });
 
-  // Démarrer le polling des messages
+  // Démarrer le polling des messages avec une fréquence réduite
   startMessagePolling();
+}
+
+async function processMessageQueue() {
+  if (isProcessingQueue || messageQueue.length === 0) {
+    return;
+  }
+
+  isProcessingQueue = true;
+
+  while (messageQueue.length > 0) {
+    const messageData = messageQueue.shift();
+    try {
+      await sendMessageToServer(messageData);
+    } catch (error) {
+      console.error('Erreur traitement queue:', error);
+      // Remettre le message en queue en cas d'erreur
+      messageQueue.unshift(messageData);
+      break;
+    }
+  }
+
+  isProcessingQueue = false;
+}
+
+async function sendMessageToServer(messageData) {
+  try {
+    const sentMessage = await sendMessage(messageData);
+    console.log('Message envoyé avec succès:', sentMessage);
+    
+    // Mettre à jour l'interface après envoi réussi
+    setTimeout(async () => {
+      await loadMessages();
+      refreshDiscussions();
+    }, 500);
+    
+    return sentMessage;
+  } catch (error) {
+    console.error('Erreur envoi serveur:', error);
+    throw error;
+  }
 }
 
 async function handleSendMessage() {
@@ -52,6 +97,12 @@ async function handleSendMessage() {
   const messageText = messageInput.value.trim();
   
   if (!messageText || !currentConversation) {
+    return;
+  }
+
+  // Vérifier les doublons
+  if (lastMessageId && messageText === lastMessageId) {
+    console.warn('Message dupliqué détecté, ignoré');
     return;
   }
 
@@ -112,29 +163,25 @@ async function handleSendMessage() {
     // Afficher immédiatement le message dans l'interface
     displayOptimisticMessage(messageData);
 
-    // Envoyer le message
-    const sentMessage = await sendMessage(messageData);
-    console.log('Message envoyé avec succès:', sentMessage);
-
-    // Vider le champ de saisie
+    // Vider le champ de saisie immédiatement
     messageInput.value = '';
-    
-    // Rafraîchir les messages
-    setTimeout(async () => {
-      await loadMessages();
-      refreshDiscussions();
-    }, 500);
+    lastMessageId = messageText;
+
+    // Ajouter à la queue pour envoi
+    messageQueue.push(messageData);
+    processMessageQueue();
     
   } catch (error) {
     console.error('Erreur envoi message:', error);
-    // Afficher une notification d'erreur discrète
     showMessageError();
   } finally {
     isMessageSending = false;
     const sendButton = document.getElementById('send-button');
-    sendButton.disabled = false;
-    sendButton.classList.remove('opacity-50');
-    sendButton.innerHTML = '<i class="fas fa-paper-plane text-white"></i>';
+    if (sendButton) {
+      sendButton.disabled = false;
+      sendButton.classList.remove('opacity-50');
+      sendButton.innerHTML = '<i class="fas fa-paper-plane text-white"></i>';
+    }
   }
 }
 
@@ -148,7 +195,7 @@ function displayOptimisticMessage(messageData) {
   });
 
   const messageHTML = `
-    <div class="flex justify-end mb-4 optimistic-message">
+    <div class="flex justify-end mb-4 optimistic-message" data-temp-id="${messageData.timestamp}">
       <div class="message-bubble bg-green-600 p-3 max-w-xs lg:max-w-md">
         <p class="text-sm text-white break-words">${escapeHtml(messageData.content)}</p>
         <div class="flex items-center justify-end space-x-1 mt-1">
@@ -215,6 +262,12 @@ export async function setCurrentConversation(type, id, name) {
     sendButton.classList.toggle('opacity-50', !messageInput?.value.trim());
   }
 
+  // Précharger les messages en arrière-plan
+  const currentUser = JSON.parse(localStorage.getItem('user'));
+  if (currentUser?.id) {
+    preloadConversationMessages(type, id, currentUser.id);
+  }
+
   // Charger les messages
   await loadMessages();
 }
@@ -240,17 +293,22 @@ async function loadMessages() {
       messages = await getGroupMessages(currentConversation.id);
     }
 
-    // Marquer les messages comme lus
+    // Marquer les messages comme lus (en arrière-plan)
     const unreadMessages = messages.filter(m => 
       m.receiverId === currentUser.id && m.status !== 'read'
     );
     
-    for (const message of unreadMessages) {
-      try {
-        await markMessageAsRead(message.id);
-      } catch (error) {
-        console.error('Erreur marquage message lu:', error);
-      }
+    // Traitement asynchrone pour ne pas bloquer l'affichage
+    if (unreadMessages.length > 0) {
+      setTimeout(async () => {
+        for (const message of unreadMessages) {
+          try {
+            await markMessageAsRead(message.id);
+          } catch (error) {
+            console.error('Erreur marquage message lu:', error);
+          }
+        }
+      }, 100);
     }
 
     displayMessages(messages, currentUser.id);
@@ -288,8 +346,12 @@ function displayMessages(messages, currentUserId) {
   // Supprimer les messages optimistes
   document.querySelectorAll('.optimistic-message').forEach(el => el.remove());
 
-  // Trier les messages par timestamp
-  const sortedMessages = messages.sort((a, b) => 
+  // Trier les messages par timestamp et supprimer les doublons
+  const uniqueMessages = messages.filter((message, index, self) => 
+    index === self.findIndex(m => m.id === message.id)
+  );
+
+  const sortedMessages = uniqueMessages.sort((a, b) => 
     new Date(a.timestamp) - new Date(b.timestamp)
   );
 
@@ -407,11 +469,16 @@ function startMessagePolling() {
     clearInterval(messagePollingInterval);
   }
   
+  // Réduire la fréquence de polling pour éviter la surcharge
   messagePollingInterval = setInterval(async () => {
-    if (currentConversation) {
-      await loadMessages();
+    if (currentConversation && !isMessageSending) {
+      try {
+        await loadMessages();
+      } catch (error) {
+        console.warn('Erreur polling messages:', error);
+      }
     }
-  }, 5000); // Vérifier les nouveaux messages toutes les 5 secondes
+  }, 10000); // Vérifier toutes les 10 secondes au lieu de 5
 }
 
 export function stopMessagePolling() {
@@ -424,6 +491,8 @@ export function stopMessagePolling() {
 // Fonction pour réinitialiser la conversation
 export function clearCurrentConversation() {
   currentConversation = null;
+  lastMessageId = null;
+  messageQueue = [];
   
   const contactNameElement = document.getElementById('contactName');
   const firstCharElement = document.getElementById('firstChar');
@@ -466,4 +535,9 @@ export function clearCurrentConversation() {
       </div>
     `;
   }
+}
+
+// Fonction pour vider le cache des messages
+export function clearMessagesCache() {
+  clearMessageCache();
 }
